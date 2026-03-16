@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مساعد مكافحة العدوى</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #0099cc;
+    --accent-glow: rgba(0, 212, 255, 0.15);
+    --text: #e2eaf4;
+    --text-muted: #7a9bbf;
+    --user-bubble: #0f2a4a;
+    --bot-bubble: #111e30;
+    --danger: #ff4f6b;
+    --success: #00e5a0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 14px 24px;
+    background: rgba(17, 24, 39, 0.97);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(20px);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #00d4ff, #0066aa);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 20px rgba(0,212,255,0.3);
+    flex-shrink: 0;
+  }
+
+  .header-text h1 { font-size: 17px; font-weight: 700; }
+  .header-text p  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    padding: 5px 14px;
+    border-radius: 20px;
+    transition: all 0.4s;
+  }
+
+  .status-badge.ready {
+    color: var(--success);
+    background: rgba(0,229,160,0.07);
+    border-color: rgba(0,229,160,0.2);
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:0.5; transform:scale(0.75); }
+  }
+
+  /* Files bar */
+  #files-bar {
+    position: relative;
+    z-index: 9;
+    padding: 9px 24px;
+    background: rgba(0,212,255,0.04);
+    border-bottom: 1px solid rgba(0,212,255,0.12);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .files-bar-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+  .file-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .file-pill-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+
+  .file-pill.error {
+    border-color: rgba(255,79,107,0.35);
+    color: #ff8fa0;
+  }
+
+  #loading-bar {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Chat */
+  #chat-area {
+    position: relative;
+    z-index: 5;
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+  }
+
+  #chat-area::-webkit-scrollbar { width: 5px; }
+  #chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+  .welcome-card {
+    margin: auto;
+    max-width: 580px;
+    width: 100%;
+    text-align: center;
+    padding: 36px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    animation: fadeUp 0.5s ease;
+  }
+
+  .welcome-card .icon {
+    font-size: 52px;
+    margin-bottom: 14px;
+    display: block;
+    filter: drop-shadow(0 0 20px rgba(0,212,255,0.35));
+  }
+
+  .welcome-card h2 {
+    font-size: 21px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #fff 30%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .welcome-card p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.9;
+    margin-bottom: 22px;
+  }
+
+  .suggestion-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+  .chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 7px 15px;
+    font-size: 13px;
+    font-family: 'Cairo', sans-serif;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-glow);
+    transform: translateY(-1px);
+  }
+
+  /* Messages */
+  .message {
+    display: flex;
+    gap: 12px;
+    animation: fadeUp 0.3s ease;
+    max-width: 840px;
+    width: 100%;
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .message.user { flex-direction: row;         align-self: flex-end; }
+  .message.bot  { flex-direction: row-reverse; align-self: flex-start; }
+
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+
+  .message.user .avatar { background: linear-gradient(135deg,#1a4a7a,#0d2a4a); border:1px solid #1e5a9a; }
+  .message.bot  .avatar { background: linear-gradient(135deg,#003d5c,#001a2c); border:1px solid var(--border); box-shadow:0 0 14px rgba(0,212,255,0.15); }
+
+  .bubble {
+    padding: 13px 17px;
+    border-radius: 14px;
+    font-size: 14.5px;
+    line-height: 1.85;
+    max-width: 680px;
+  }
+
+  .message.user .bubble {
+    background: var(--user-bubble);
+    border: 1px solid #1e3d6a;
+    border-top-left-radius: 4px;
+    color: #c8d8ea;
+    text-align: right;
+  }
+
+  .message.bot .bubble {
+    background: var(--bot-bubble);
+    border: 1px solid var(--border);
+    border-top-right-radius: 4px;
+    text-align: right;
+  }
+
+  .bubble strong { color: var(--accent); font-weight: 700; }
+  .bubble em     { color: var(--text-muted); }
+  .bubble ul, .bubble ol { padding-right: 20px; padding-left: 0; margin: 8px 0; }
+  .bubble li  { margin-bottom: 5px; }
+  .bubble p   { margin-bottom: 8px; }
+  .bubble p:last-child { margin-bottom: 0; }
+
+  .source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 4px 12px;
+    background: rgba(0,229,160,0.07);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: 20px;
+    font-size: 11.5px;
+    color: var(--success);
+  }
+
+  /* Typing */
+  .typing-indicator {
+    display: flex; align-items: center; gap: 5px;
+    padding: 14px 18px; direction: ltr;
+  }
+
+  .typing-indicator span {
+    width:7px; height:7px; border-radius:50%;
+    background: var(--accent);
+    animation: bounce 1.2s infinite; opacity:0.6;
+  }
+
+  .typing-indicator span:nth-child(2) { animation-delay:.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay:.4s; }
+
+  @keyframes bounce {
+    0%,80%,100% { transform:translateY(0); opacity:.5; }
+    40%          { transform:translateY(-7px); opacity:1; }
+  }
+
+  /* Input */
+  #input-area {
+    position: relative;
+    z-index: 10;
+    padding: 14px 24px 18px;
+    background: rgba(17,24,39,0.97);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+  }
+
+  .input-wrap {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    max-width: 860px;
+    margin: 0 auto;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 14px 10px 10px;
+    transition: border-color 0.2s;
+  }
+
+  .input-wrap:focus-within { border-color: var(--accent); }
+
+  #user-input {
+    flex: 1;
+    background: none; border: none; outline: none;
+    color: var(--text);
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    resize: none;
+    max-height: 130px;
+    line-height: 1.7;
+    text-align: right;
+    direction: rtl;
+  }
+
+  #user-input::placeholder { color: var(--text-muted); }
+
+  #send-btn {
+    width: 40px; height: 40px;
+    border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #000;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    box-shadow: 0 0 16px rgba(0,212,255,0.25);
+    transform: scaleX(-1);
+  }
+
+  #send-btn:hover    { transform: scaleX(-1) scale(1.07); box-shadow: 0 0 24px rgba(0,212,255,0.45); }
+  #send-btn:disabled { opacity:.35; cursor:not-allowed; transform:scaleX(-1); }
+
+  .input-hint {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 7px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 90px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,79,107,0.12);
+    border: 1px solid var(--danger);
+    color: #ff8fa0;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 13px;
+    z-index: 200;
+    animation: fadeUp 0.3s ease;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 600px) {
+    header, #files-bar, #chat-area, #input-area { padding-left: 14px; padding-right: 14px; }
+    .welcome-card { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║           ⚙️  إعدادات المطور — عدّل هنا فقط           ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<script>
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   1) 🔑 Gemini API Key
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const GEMINI_API_KEY = "ضع_الـ_API_Key_هنا";
+//  مثال: const GEMINI_API_KEY = "AIzaSyXXXXXXXXXXXXXXXXXXXXX";
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   2) 📄 ملفات الـ PDF
+   لو الملفات في نفس مجلد الـ HTML → اكتب اسم الملف بس
+   لو على GitHub Pages → اكتب الـ URL الكامل
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const PDF_FILES = [
+  {
+    name: "الجزء الأول",
+    url:  "Part_1.pdf"
+    //  GitHub Pages مثال:
+    //  url: "https://USERNAME.github.io/REPO_NAME/Part_1.pdf"
+  },
+  {
+    name: "الجزء الثاني",
+    url:  "Part_2.pdf"
+    //  url: "https://USERNAME.github.io/REPO_NAME/Part_2.pdf"
+  }
+];
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   3) 🏷️ اسم التطبيق (اختياري)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const APP_TITLE    = "مساعد مكافحة العدوى";
+const APP_SUBTITLE = "الدليل القومي المصري لمكافحة العدوى";
+
+// ══════════════════════════════════════════════════════════
+//  🚫 لا تعدّل أي شيء بعد هذا السطر
+// ══════════════════════════════════════════════════════════
+</script>
+
+<!-- Header -->
+<header>
+  <div class="header-left">
+    <div class="logo-icon">🦠</div>
+    <div class="header-text">
+      <h1 id="app-title"></h1>
+      <p id="app-subtitle"></p>
+    </div>
+  </div>
+  <div class="status-badge" id="status-badge">
+    <div class="status-dot"></div>
+    <span id="status-text">جاري التحميل...</span>
+  </div>
+</header>
+
+<!-- Files Bar -->
+<div id="files-bar">
+  <span class="files-bar-label">📚 المصادر:</span>
+  <div id="file-pills" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
+  <div id="loading-bar">
+    <div class="spinner"></div>
+    <span id="loading-text">جاري تحميل الملفات...</span>
+  </div>
+</div>
+
+<!-- Chat Area -->
+<div id="chat-area">
+  <div class="welcome-card" id="welcome-card">
+    <span class="icon">🏥</span>
+    <h2>مرحباً بك في مساعد مكافحة العدوى</h2>
+    <p>
+      يجيب هذا المساعد على أسئلتك <strong>فقط من الدليل القومي لمكافحة العدوى</strong>.<br>
+      اكتب سؤالك أو اختر من الأسئلة الشائعة أدناه.
+    </p>
+    <div class="suggestion-chips">
+      <div class="chip" onclick="sendChip(this)">ما هي الاحتياطات القياسية؟</div>
+      <div class="chip" onclick="sendChip(this)">كيف يتم تطبيق نظافة اليدين بشكل صحيح؟</div>
+      <div class="chip" onclick="sendChip(this)">ما معدات الحماية الشخصية اللازمة لغرف العزل؟</div>
+      <div class="chip" onclick="sendChip(this)">ما هي أنواع احتياطات العزل؟</div>
+      <div class="chip" onclick="sendChip(this)">كيف يتم التعامل مع الإبر والأدوات الحادة؟</div>
+      <div class="chip" onclick="sendChip(this)">ما متطلبات التعقيم والتطهير؟</div>
+      <div class="chip" onclick="sendChip(this)">ما هي طرق انتقال العدوى؟</div>
+      <div class="chip" onclick="sendChip(this)">كيف يتم التعامل مع النفايات الطبية؟</div>
+    </div>
+  </div>
+</div>
+
+<!-- Input Area -->
+<div id="input-area">
+  <div class="input-wrap">
+    <button id="send-btn" onclick="sendMessage()" disabled>➤</button>
+    <textarea id="user-input" rows="1"
+      placeholder="اكتب سؤالك هنا..."
+      onkeydown="handleKey(event)"
+      oninput="autoResize(this)"></textarea>
+  </div>
+  <div class="input-hint">اضغط Enter للإرسال · Shift+Enter لسطر جديد</div>
+</div>
+
+<script>
+// ─── Init ─────────────────────────────────────────────────
+document.getElementById('app-title').textContent    = APP_TITLE;
+document.getElementById('app-subtitle').textContent = APP_SUBTITLE;
+document.title = APP_TITLE;
+
+let pdfCache  = [];   // [{name, base64}]
+let isLoading = false;
+
+window.addEventListener('DOMContentLoaded', loadAllPDFs);
+
+// ─── Load PDFs ────────────────────────────────────────────
+async function loadAllPDFs() {
+  const loadingBar  = document.getElementById('loading-bar');
+  const loadingText = document.getElementById('loading-text');
+  const pillsDiv    = document.getElementById('file-pills');
+  const statusBadge = document.getElementById('status-badge');
+  const statusText  = document.getElementById('status-text');
+  const sendBtn     = document.getElementById('send-btn');
+
+  loadingBar.style.display = 'flex';
+
+  for (const f of PDF_FILES) {
+    loadingText.textContent = `جاري تحميل: ${f.name}...`;
+    try {
+      const resp   = await fetch(f.url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob   = await resp.blob();
+      const base64 = await blobToBase64(blob);
+      pdfCache.push({ name: f.name, base64 });
+
+      const pill = document.createElement('div');
+      pill.className = 'file-pill';
+      pill.innerHTML = `<div class="file-pill-dot"></div>${f.name}`;
+      pillsDiv.appendChild(pill);
+    } catch (err) {
+      const pill = document.createElement('div');
+      pill.className = 'file-pill error';
+      pill.innerHTML = `⚠️ ${f.name} — فشل التحميل`;
+      pillsDiv.appendChild(pill);
+      console.error(`Failed: ${f.url}`, err);
+    }
+  }
+
+  loadingBar.style.display = 'none';
+
+  if (pdfCache.length > 0) {
+    statusBadge.classList.add('ready');
+    statusText.textContent = 'جاهز';
+    sendBtn.disabled = false;
+  } else {
+    statusText.textContent = '⚠️ فشل التحميل';
+    statusBadge.style.color       = 'var(--danger)';
+    statusBadge.style.borderColor = 'rgba(255,79,107,0.3)';
+    statusBadge.style.background  = 'rgba(255,79,107,0.06)';
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+}
+
+// ─── Send Message ─────────────────────────────────────────
+async function sendMessage() {
+  const input    = document.getElementById('user-input');
+  const question = input.value.trim();
+  if (!question || isLoading || pdfCache.length === 0) return;
+
+  document.getElementById('welcome-card')?.remove();
+
+  input.value = '';
+  autoResize(input);
+  appendMessage('user', question);
+
+  const typingId = showTyping();
+  isLoading = true;
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const parts = [
+      ...pdfCache.map(f => ({
+        inline_data: { mime_type: 'application/pdf', data: f.base64 }
+      })),
+      {
+        text: `أنت مساعد متخصص في مكافحة العدوى.
+أجب على السؤال التالي بناءً فقط على محتوى الملفات المرفقة (الدليل القومي لمكافحة العدوى).
+كن دقيقاً ومنظماً في إجابتك، واذكر رقم الجزء أو الفصل أو الصفحة عند الإمكان.
+إذا لم تجد الإجابة في الوثائق، صرّح بذلك بوضوح ولا تخترع معلومات.
+أجب باللغة العربية دائماً.
+
+السؤال: ${question}`
+      }
+    ];
+
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: { temperature: 0.15, maxOutputTokens: 2048 }
+        })
+      }
+    );
+
+    removeTyping(typingId);
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error?.message || 'خطأ في الاتصال');
+    }
+
+    const data = await resp.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'لم يتم الحصول على رد.';
+    appendMessage('bot', text, true);
+
+  } catch (err) {
+    removeTyping(typingId);
+    appendMessage('bot', `❌ حدث خطأ: ${err.message}`);
+  } finally {
+    isLoading = false;
+    document.getElementById('send-btn').disabled = false;
+  }
+}
+
+function sendChip(el) {
+  if (pdfCache.length === 0) { showToast('⏳ الملفات لا تزال تُحمَّل، انتظر لحظة...'); return; }
+  document.getElementById('user-input').value = el.textContent;
+  sendMessage();
+}
+
+// ─── UI Helpers ───────────────────────────────────────────
+function appendMessage(role, text, isBot = false) {
+  const chat = document.getElementById('chat-area');
+  const msg  = document.createElement('div');
+  msg.className = `message ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+
+  if (isBot) {
+    bubble.innerHTML = formatText(text);
+    const badge = document.createElement('div');
+    badge.className = 'source-badge';
+    badge.innerHTML = `✓ المصدر: ${pdfCache.map(f => f.name).join(' · ')}`;
+    bubble.appendChild(badge);
+  } else {
+    bubble.textContent = text;
+  }
+
+  msg.appendChild(avatar);
+  msg.appendChild(bubble);
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function formatText(t) {
+  return t
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+    .replace(/^###\s(.+)$/gm,  '<strong style="font-size:15px;color:var(--accent);display:block;margin-top:8px">$1</strong>')
+    .replace(/^##\s(.+)$/gm,   '<strong style="font-size:16px;color:var(--accent);display:block;margin-top:8px">$1</strong>')
+    .replace(/^#\s(.+)$/gm,    '<strong style="font-size:17px;color:var(--accent);display:block;margin-top:8px">$1</strong>')
+    .replace(/^-\s(.+)$/gm,    '• $1')
+    .replace(/\n/g, '<br>');
+}
+
+function showTyping() {
+  const chat = document.getElementById('chat-area');
+  const msg  = document.createElement('div');
+  const id   = 'typing-' + Date.now();
+  msg.id = id;
+  msg.className = 'message bot';
+  msg.innerHTML = `
+    <div class="avatar">🤖</div>
+    <div class="bubble">
+      <div class="typing-indicator"><span></span><span></span><span></span></div>
+    </div>`;
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) { document.getElementById(id)?.remove(); }
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 130) + 'px';
+}
+
+function showToast(msg) {
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+</script>
+</body>
+</html>
